@@ -1,0 +1,233 @@
+# llm-d Edge Router Configuration for Integration Testing with Stub Server
+# This configuration uses the llm-d stub server instead of a real Kubernetes cluster
+
+edge:
+  # Platform: use "local-stub" for integration testing without real models
+  platform: "local-stub"
+  
+  # Device configuration
+  device:
+    type: "auto"
+    memory: "auto"
+    storage: "auto"
+  
+  # Routing configuration
+  routing:
+    # Routing policy: local-first, remote-first, hybrid, cost-optimized, latency-optimized, mobile-optimized
+    policy: "hybrid"
+    fallback: "remote"
+  
+  # Models configuration
+  models:
+    # Local models (local-stub engine doesn't require real model files)
+    local:
+      - name: "local-stub-model-small"
+        path: "/tmp/stub-model-small"
+        format: "gguf"
+        quantization: "q4"
+        priority: 1
+      - name: "local-stub-model-large"
+        path: "/tmp/local-stub-model-large"
+        format: "gguf"
+        quantization: "q8"
+        priority: 2
+    
+    # Remote cluster configuration (using stub server)
+    remote:
+      cluster_url: "http://localhost:8081"
+      timeout: 30
+  
+  # Routing rules (evaluated in order)
+  routing_rules:
+    # Route large models to remote (stub)
+    - condition: "model_size > 7B"
+      action: "route_remote"
+    
+    # Route high token requests to remote (stub)
+    - condition: "estimated_tokens > 2000"
+      action: "route_remote"
+    
+    # Prefer local for small requests
+    - condition: "estimated_tokens < 500"
+      action: "prefer_local"
+
+# Remote llm-d cluster configuration (using stub)
+remote:
+  # Stub server endpoint (default port 8081)
+  endpoint: "http://localhost:8081"
+  
+  # API key for authentication (optional, stub can run with or without)
+  # Set STUB_API_KEY environment variable or uncomment below
+  # api_key: "test-api-key"
+  
+  # Request timeout
+  timeout: 30s
+  
+  # Maximum retry attempts
+  max_retries: 3
+  
+  # Retry delay
+  retry_delay: 1s
+  
+  # Custom headers (optional)
+  headers:
+    X-Test-Mode: "stub"
+    X-Client: "edge-router-integration-test"
+
+# Local inference configuration
+local:
+  # Platform: use "local-stub" for integration testing without real models
+  # Other options: macos, windows, linux, android, ios
+  platform: "local-stub"
+  
+  # Directory containing local models
+  models_dir: "~/.llm-d/models"
+  
+  # Cache directory for model artifacts
+  cache_dir: "~/.llm-d/cache"
+  
+  # Maximum concurrent local inferences
+  max_concurrency: 2
+  
+  # Model configuration (local-stub engine doesn't require real model files)
+  models:
+    - name: "local-stub-model-small"
+      path: "/tmp/local-stub-model-small"  # Local-stub engine doesn't need real files
+      format: "gguf"
+      quantization: "q4"
+      max_context_length: 4096
+    - name: "local-stub-model-large"
+      path: "/tmp/local-stub-model-large"
+      format: "gguf"
+      quantization: "q8"
+      max_context_length: 8192
+
+# Routing configuration
+routing:
+  # Routing policy: local-first, remote-first, hybrid, cost-optimized, latency-optimized, mobile-optimized
+  policy: "hybrid"
+  
+  # Fallback to remote if local fails
+  fallback_to_remote: true
+  
+  # Fallback to local if remote fails
+  fallback_to_local: true
+  
+  # Maximum local queue depth before routing to remote
+  max_local_queue_depth: 5
+  
+  # Routing rules (evaluated in order)
+  routing_rules:
+    # Route large models to remote (stub)
+    - condition: "model_size > 7B"
+      action: "route_remote"
+      description: "Large models go to remote cluster"
+    
+    # Route high token requests to remote (stub)
+    - condition: "estimated_tokens > 2000"
+      action: "route_remote"
+      description: "Long prompts go to remote cluster"
+    
+    # Prefer local for small requests
+    - condition: "estimated_tokens < 500"
+      action: "prefer_local"
+      description: "Short prompts prefer local"
+  
+  # Network monitoring
+  network_check_interval: 10s
+  network_check_timeout: 5s
+  
+  # Offline mode behavior
+  offline_mode: false
+
+# Logging configuration
+logging:
+  # Log level: debug, info, warn, error
+  level: "info"
+  
+  # Log format: json, console
+  format: "console"
+  
+  # Log file (optional, logs to stdout if not specified)
+  # file: "/var/log/edge-router.log"
+
+# Metrics configuration
+metrics:
+  # Enable Prometheus metrics
+  enabled: true
+  
+  # Metrics endpoint path
+  path: "/metrics"
+  
+  # Metrics port (uses same port as API server)
+  # port: 8080
+
+# API server configuration
+server:
+  # Listen address
+  host: "0.0.0.0"
+  
+  # Listen port
+  port: 8080
+  
+  # Read timeout
+  read_timeout: 30s
+  
+  # Write timeout
+  write_timeout: 30s
+  
+  # Idle timeout
+  idle_timeout: 60s
+  
+  # Enable CORS
+  cors_enabled: true
+  
+  # CORS allowed origins
+  cors_origins:
+    - "*"
+
+# Integration testing specific settings
+testing:
+  # Enable test mode features
+  enabled: true
+  
+  # Stub server configuration
+  stub:
+    # Stub server endpoint (should match remote.endpoint)
+    endpoint: "http://localhost:8081"
+    
+    # Expected latency range (for validation)
+    expected_latency_min_ms: 100
+    expected_latency_max_ms: 500
+    
+    # Expected error rate (for validation)
+    expected_error_rate: 0.0
+  
+  # Test scenarios
+  scenarios:
+    # Test remote routing
+    - name: "remote_routing"
+      description: "Verify requests are routed to stub server"
+      routing_policy: "remote-first"
+      expected_route: "remote"
+    
+    # Test local routing
+    - name: "local_routing"
+      description: "Verify requests are routed locally"
+      routing_policy: "local-first"
+      expected_route: "local"
+    
+    # Test hybrid routing
+    - name: "hybrid_routing"
+      description: "Verify intelligent routing based on load"
+      routing_policy: "hybrid"
+      expected_route: "dynamic"
+    
+    # Test fallback
+    - name: "fallback_test"
+      description: "Verify fallback from local to remote"
+      routing_policy: "local-first"
+      simulate_local_failure: true
+      expected_route: "remote"
+
+# Made with Bob

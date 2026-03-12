@@ -1,0 +1,41 @@
+# Build artifacts
+build/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*_test.go
+coverage.out
+coverage.html
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!README.md
+
+# Config files (use config.example.yaml instead)
+config.yaml
+
+# Models and cache (should be mounted as volumes)
+models/
+cache/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.log

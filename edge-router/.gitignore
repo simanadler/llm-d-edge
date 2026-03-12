@@ -1,0 +1,63 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+edge-router
+build/
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Configuration files (keep example)
+config.yaml
+*.local.yaml
+
+# Models and cache
+models/
+cache/
+*.gguf
+*.safetensors
+*.bin
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+tmp/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+env/
+ENV/
+
+# MLX specific
+mlx_cache/

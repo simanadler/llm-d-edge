@@ -1,0 +1,100 @@
+# llm-d Edge Router Configuration Example
+
+edge:
+  # Platform: auto-detect or specify (macos, windows, android, ios)
+  platform: auto
+
+  # Device configuration
+  device:
+    type: auto        # auto-detect or specify device type
+    memory: auto      # auto-detect or specify (e.g., "32GB")
+    storage: auto     # auto-detect or specify (e.g., "512GB")
+
+  # Routing policy configuration
+  routing:
+    # Policy options:
+    # - local-first: Prefer local inference when possible
+    # - remote-first: Prefer remote cluster inference
+    # - hybrid: Balance between local and remote based on request size
+    # - cost-optimized: Minimize cost
+    # - latency-optimized: Minimize latency
+    # - mobile-optimized: Optimize for mobile constraints (battery, thermal)
+    policy: hybrid
+
+    # Fallback behavior when primary target fails
+    # Options: remote, local, fail
+    fallback: remote
+
+  # Model configuration
+  models:
+    # Local models available on this device
+    local:
+      - name: "Qwen/Qwen3-0.6B"
+        format: auto              # auto, mlx, gguf, pytorch, coreml
+        quantization: "4bit"      # 4bit, 8bit, none
+        priority: 1               # Higher priority models loaded first
+        # path: "/path/to/model"  # Optional: explicit path
+
+      - name: "meta-llama/Llama-3.2-3B"
+        format: auto
+        quantization: "4bit"
+        priority: 2
+
+    # Remote cluster configuration
+    remote:
+      cluster_url: "https://llm-d.example.com"
+      auth_token: "${LLMD_AUTH_TOKEN}"  # Use environment variable
+      timeout: 60  # seconds
+
+  # Custom routing rules (evaluated in order)
+  routing_rules:
+    # Route small requests to local
+    - condition: "prompt_tokens < 1000 AND model IN local_models"
+      action: "route_local"
+
+    # Route large requests to remote
+    - condition: "prompt_tokens >= 1000 OR model NOT IN local_models"
+      action: "route_remote"
+
+    # Always use local when offline
+    - condition: "network_offline"
+      action: "route_local_or_fail"
+
+  # Platform-specific overrides
+  platform_overrides:
+    # Android-specific settings
+    android:
+      routing:
+        policy: "mobile-optimized"
+      models:
+        local:
+          - name: "Qwen/Qwen3-0.6B"
+            quantization: "4bit"  # Only 4-bit on mobile
+
+    # iOS-specific settings
+    ios:
+      routing:
+        policy: "mobile-optimized"
+      models:
+        local:
+          - name: "Qwen/Qwen3-0.6B"
+            format: "coreml"      # Prefer Core ML on iOS
+            quantization: "4bit"
+
+    # macOS-specific settings
+    macos:
+      models:
+        local:
+          - name: "Qwen/Qwen3-0.6B"
+            format: "mlx"         # Use MLX on macOS
+            quantization: "4bit"
+
+    # Windows-specific settings
+    windows:
+      models:
+        local:
+          - name: "Qwen/Qwen3-0.6B"
+            format: "gguf"        # Use GGUF with llama.cpp
+            quantization: "4bit"
+
+# Made with Bob

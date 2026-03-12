@@ -75,12 +75,15 @@ brew install go
 ```bash
 # Clone the repository
 git clone https://github.com/llm-d-incubation/llm-d-edge.git
-cd edge-router
+cd llm-d-edge/edge-router
 
-# Build
-go build -o edge-router ./cmd/edge-router
+# Build using Makefile (recommended - builds to build/edge-router)
+make build
 
-# Or install
+# Or build manually
+go build -o build/edge-router ./cmd/edge-router
+
+# Or install to $GOPATH/bin (typically ~/go/bin)
 go install ./cmd/edge-router
 ```
 
@@ -116,11 +119,17 @@ export LLMD_AUTH_TOKEN="your-auth-token"
 ### Running
 
 ```bash
-# Start the edge router
-./edge-router --config config.yaml --port 8080
+# If you built with make or go build
+./build/edge-router --config config.yaml --port 8080
 
 # Or with custom log level
-./edge-router --config config.yaml --port 8080 --log-level debug
+./build/edge-router --config config.yaml --port 8080 --log-level debug
+
+# If you installed with go install (and ~/go/bin is in your PATH)
+edge-router --config config.yaml --port 8080
+
+# Or use the Makefile
+make run
 ```
 
 ### Usage

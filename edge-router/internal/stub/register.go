@@ -6,9 +6,17 @@ import (
 )
 
 func init() {
-	// Register local-stub engine factory for simulating local inference
+	// Register stub engine factory for simulating local inference
+	// Register under multiple names for compatibility
+	engine.RegisterEngine("stub", func() engine.InferenceEngine {
+		logger := zap.NewNop()
+		return NewStubEngine(logger)
+	})
 	engine.RegisterEngine("local-stub", func() engine.InferenceEngine {
-		// Create a no-op logger for the local-stub engine
+		logger := zap.NewNop()
+		return NewStubEngine(logger)
+	})
+	engine.RegisterEngine("test", func() engine.InferenceEngine {
 		logger := zap.NewNop()
 		return NewStubEngine(logger)
 	})

@@ -31,8 +31,8 @@ edge:
     remote:
       cluster_url: "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/qwen2-5-72b-instruct"
       timeout: 30
-      headers:  # Optional custom headers
-        RITS_API_KEY: "xxx"
+      headers:  # Optional custom headers (supports environment variables)
+        RITS_API_KEY: "${RITS_API_KEY}"
   
   # Routing rules (evaluated in order)
   routing_rules:

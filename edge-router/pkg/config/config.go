@@ -123,6 +123,9 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("failed to expand model paths: %w", err)
 	}
 
+	// Expand environment variables in headers
+	expandTokenEnvVars(&config)
+
 	// Apply platform-specific overrides
 	if err := applyPlatformOverrides(&config); err != nil {
 		return nil, fmt.Errorf("failed to apply platform overrides: %w", err)
@@ -180,6 +183,20 @@ func expandPath(path string) (string, error) {
 	path = filepath.Clean(path)
 
 	return path, nil
+}
+
+// expandHeaderEnvVars expands environment variables in header values and auth token
+func expandTokenEnvVars(config *Config) {
+	// Expand environment variables in auth_token
+	if config.Edge.Models.Remote.AuthToken != "" {
+		config.Edge.Models.Remote.AuthToken = os.ExpandEnv(config.Edge.Models.Remote.AuthToken)
+	}
+	
+	// Expand environment variables in headers
+	for key, value := range config.Edge.Models.Remote.Headers {
+		// Expand environment variables in the format ${VAR} or $VAR
+		config.Edge.Models.Remote.Headers[key] = os.ExpandEnv(value)
+	}
 }
 
 // setDefaults sets default configuration values

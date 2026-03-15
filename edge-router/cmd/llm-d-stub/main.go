@@ -45,7 +45,7 @@ type ChatMessage struct {
 type ChatCompletionResponse struct {
 	ID      string                 `json:"id"`
 	Object  string                 `json:"object"`
-	Created string                 `json:"created"`
+	Created int64                  `json:"created"`
 	Model   string                 `json:"model"`
 	Choices []ChatCompletionChoice `json:"choices"`
 	Usage   ChatCompletionUsage    `json:"usage"`
@@ -77,7 +77,7 @@ type CompletionRequest struct {
 type CompletionResponse struct {
 	ID      string              `json:"id"`
 	Object  string              `json:"object"`
-	Created string              `json:"created"`
+	Created int64               `json:"created"`
 	Model   string              `json:"model"`
 	Choices []CompletionChoice  `json:"choices"`
 	Usage   ChatCompletionUsage `json:"usage"`
@@ -355,7 +355,7 @@ func generateChatResponse(req ChatCompletionRequest) ChatCompletionResponse {
 	return ChatCompletionResponse{
 		ID:      fmt.Sprintf("chatcmpl-stub-%d", time.Now().UnixNano()),
 		Object:  "chat.completion",
-		Created: time.Now().UTC().Format(time.RFC3339),
+		Created: time.Now().Unix(),
 		Model:   req.Model,
 		Choices: []ChatCompletionChoice{
 			{
@@ -384,7 +384,7 @@ func generateCompletionResponse(req CompletionRequest) CompletionResponse {
 	return CompletionResponse{
 		ID:      fmt.Sprintf("cmpl-stub-%d", time.Now().UnixNano()),
 		Object:  "text_completion",
-		Created: time.Now().UTC().Format(time.RFC3339),
+		Created: time.Now().Unix(),
 		Model:   req.Model,
 		Choices: []CompletionChoice{
 			{

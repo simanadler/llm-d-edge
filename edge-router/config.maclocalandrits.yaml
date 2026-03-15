@@ -2,8 +2,8 @@
 # This configuration uses the llm-d stub server instead of a real Kubernetes cluster
 
 edge:
-  # Platform: use "local-stub" for integration testing without real models
-  platform: "local-stub"
+  # Using real model on mac, not a stub
+  platform: "macos"
   
   # Device configuration
   device:
@@ -14,28 +14,25 @@ edge:
   # Routing configuration
   routing:
     # Routing policy: local-first, remote-first, hybrid, cost-optimized, latency-optimized, mobile-optimized
-    policy: "hybrid"
+    policy: "local-first"
     fallback: "remote"
   
   # Models configuration
   models:
-    # Local models (local-stub engine doesn't require real model files)
+    # Local models
     local:
-      - name: "local-stub-model-small"
-        path: "/tmp/stub-model-small"
-        format: "gguf"
-        quantization: "q4"
+      - name: "Qwen/Qwen2.5-3B-Instruct"
+        path: "~/Library/Application Support/llm-d/models/Qwen--Qwen2.5-3B-Instruct"
+        format: "mlx"
+        quantization: "4bit"
         priority: 1
-      - name: "local-stub-model-large"
-        path: "/tmp/local-stub-model-large"
-        format: "gguf"
-        quantization: "q8"
-        priority: 2
     
-    # Remote cluster configuration (using stub server)
+    # Remote cluster configuration (using RITS)
     remote:
-      cluster_url: "http://localhost:8081"
+      cluster_url: "https://inference-3scale-apicast-production.apps.rits.fmaas.res.ibm.com/qwen2-5-72b-instruct"
       timeout: 30
+      headers:  # Optional custom headers
+        RITS_API_KEY: "xxx"
   
   # Routing rules (evaluated in order)
   routing_rules:
@@ -49,4 +46,5 @@ edge:
     
     # Prefer local for small requests
     - condition: "estimated_tokens < 500"
-      action: "prefer_local"
+      action: "route_local"
+

@@ -349,16 +349,23 @@ func (r *Router) hasLocalModel(modelName string) bool {
 
 func (r *Router) canServeLocally(req *engine.InferenceRequest) bool {
 	if !r.localEngine.IsHealthy() {
+		r.logger.Warn("Local engine is not healthy. Cannot serve request locally")
 		return false
 	}
 
 	status := r.localEngine.GetStatus()
 	if status.State != engine.StateReady && status.State != engine.StateIdle {
+		r.logger.Warn("cannot serve locally due to engine state",
+			zap.String("state", string(status.State)),
+			zap.String("required", "ready or idle"))
 		return false
 	}
 
 	// Check if we have enough memory (simplified check)
 	if status.MemoryUsageMB > 32000 { // Arbitrary threshold
+		r.logger.Warn("cannot serve locally due to high memory usage",
+			zap.Int64("memory_usage_mb", status.MemoryUsageMB),
+			zap.Int64("threshold_mb", 32000))
 		return false
 	}
 

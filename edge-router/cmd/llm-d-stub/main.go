@@ -43,12 +43,12 @@ type ChatMessage struct {
 }
 
 type ChatCompletionResponse struct {
-	ID      string                   `json:"id"`
-	Object  string                   `json:"object"`
-	Created int64                    `json:"created"`
-	Model   string                   `json:"model"`
-	Choices []ChatCompletionChoice   `json:"choices"`
-	Usage   ChatCompletionUsage      `json:"usage"`
+	ID      string                 `json:"id"`
+	Object  string                 `json:"object"`
+	Created string                 `json:"created"`
+	Model   string                 `json:"model"`
+	Choices []ChatCompletionChoice `json:"choices"`
+	Usage   ChatCompletionUsage    `json:"usage"`
 }
 
 type ChatCompletionChoice struct {
@@ -75,11 +75,11 @@ type CompletionRequest struct {
 }
 
 type CompletionResponse struct {
-	ID      string             `json:"id"`
-	Object  string             `json:"object"`
-	Created int64              `json:"created"`
-	Model   string             `json:"model"`
-	Choices []CompletionChoice `json:"choices"`
+	ID      string              `json:"id"`
+	Object  string              `json:"object"`
+	Created string              `json:"created"`
+	Model   string              `json:"model"`
+	Choices []CompletionChoice  `json:"choices"`
 	Usage   ChatCompletionUsage `json:"usage"`
 }
 
@@ -284,9 +284,9 @@ func handleCompletion(c *gin.Context) {
 
 func handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
-		"status": "healthy",
-		"service": "llm-d-stub",
-		"timestamp": time.Now().Unix(),
+		"status":    "healthy",
+		"service":   "llm-d-stub",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	})
 }
 
@@ -355,7 +355,7 @@ func generateChatResponse(req ChatCompletionRequest) ChatCompletionResponse {
 	return ChatCompletionResponse{
 		ID:      fmt.Sprintf("chatcmpl-stub-%d", time.Now().UnixNano()),
 		Object:  "chat.completion",
-		Created: time.Now().Unix(),
+		Created: time.Now().UTC().Format(time.RFC3339),
 		Model:   req.Model,
 		Choices: []ChatCompletionChoice{
 			{
@@ -384,7 +384,7 @@ func generateCompletionResponse(req CompletionRequest) CompletionResponse {
 	return CompletionResponse{
 		ID:      fmt.Sprintf("cmpl-stub-%d", time.Now().UnixNano()),
 		Object:  "text_completion",
-		Created: time.Now().Unix(),
+		Created: time.Now().UTC().Format(time.RFC3339),
 		Model:   req.Model,
 		Choices: []CompletionChoice{
 			{

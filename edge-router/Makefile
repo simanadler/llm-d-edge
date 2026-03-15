@@ -127,7 +127,7 @@ test-integration: build-with-stub
 	echo "2. Testing stub server health..."; \
 	curl -s http://localhost:8081/health > /dev/null && echo "   ✓ Stub server is healthy" || (echo "   ✗ Stub server failed"; kill $$STUB_PID; exit 1); \
 	echo "3. Starting edge-router in background..."; \
-	./$(BUILD_DIR)/$(BINARY_NAME) --config config.stub.yaml --port 8080 > /dev/null 2>&1 & \
+	./$(BUILD_DIR)/$(BINARY_NAME) --config config.stub.yaml --port 8080 --log-level debug > /dev/null 2>&1 & \
 	ROUTER_PID=$$!; \
 	echo "   Edge router PID: $$ROUTER_PID"; \
 	sleep 2; \
@@ -136,7 +136,7 @@ test-integration: build-with-stub
 	echo "5. Testing remote routing (via stub)..."; \
 	curl -s -X POST http://localhost:8080/v1/chat/completions \
 		-H "Content-Type: application/json" \
-		-d '{"model":"test-model","messages":[{"role":"user","content":"Hello from integration test"}]}' \
+		-d '{"model":"remote-model","messages":[{"role":"user","content":"Hello from integration test"}]}' \
 		| grep -q "llm-d-stub" && echo "   ✓ Remote routing works" || echo "   ✗ Remote routing failed"; \
 	echo "6. Cleaning up..."; \
 	kill $$STUB_PID $$ROUTER_PID 2>/dev/null || true; \

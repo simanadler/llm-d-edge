@@ -62,13 +62,19 @@ func (rc *RemoteClient) Infer(ctx context.Context, req *engine.InferenceRequest)
 	if rc.config.AuthToken != "" {
 		httpReq.Header.Set("Authorization", "Bearer "+rc.config.AuthToken)
 	}
+	//httpReq.Header.Set("RITS_API_KEY", "c6624bc75b20cf393d6cf7a9284e7db4")
+	
+	// Add custom headers from config
+	for k, v := range rc.config.Headers {
+		httpReq.Header.Set(k, v)
+	}
 
 	// Send request
 	rc.logger.Debug("sending request to remote cluster",
 		zap.String("endpoint", endpoint),
 		zap.String("model", req.Model),
 	)
-
+	
 	resp, err := rc.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request: %w", err)

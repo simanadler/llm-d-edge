@@ -45,6 +45,9 @@ edge:
       cluster_url: "https://llm-d.example.com"
       auth_token: "${LLMD_AUTH_TOKEN}"  # Use environment variable
       timeout: 60  # seconds
+      headers:  # Optional custom headers
+        X-Custom-Header: "value"
+        RITS_API_KEY: "${RITS_API_KEY}"
 
   # Custom routing rules (evaluated in order)
   routing_rules:

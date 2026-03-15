@@ -335,11 +335,6 @@ func (e *MLXEngine) generateMLXScript(prompt string, request engine.InferenceReq
 		maxTokens = 100
 	}
 
-	temperature := request.Temperature
-	if temperature == 0 {
-		temperature = 0.7
-	}
-
 	// Generate Python script for MLX inference
 	script := fmt.Sprintf(`
 import json
@@ -355,7 +350,6 @@ output = generate(
     tokenizer,
     prompt=prompt,
     max_tokens=%d,
-    temp=%.2f,
     verbose=False
 )
 
@@ -370,7 +364,7 @@ result = {
     "output_tokens": output_tokens
 }
 print(json.dumps(result))
-`, e.config.ModelPath, jsonQuote(prompt), maxTokens, temperature)
+`, e.config.ModelPath, jsonQuote(prompt), maxTokens)
 
 	return script
 }

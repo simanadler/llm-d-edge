@@ -359,7 +359,6 @@ func TestMLXEngineGenerateScript(t *testing.T) {
 		"from mlx_lm import load, generate",
 		"/tmp/test-model",
 		"max_tokens=100",
-		"temp=0.70",
 	}
 
 	for _, component := range expectedComponents {

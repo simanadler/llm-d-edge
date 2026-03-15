@@ -66,9 +66,10 @@ type LocalModelConfig struct {
 
 // RemoteClusterConfig defines remote cluster configuration
 type RemoteClusterConfig struct {
-	ClusterURL string `mapstructure:"cluster_url" yaml:"cluster_url"`
-	AuthToken  string `mapstructure:"auth_token" yaml:"auth_token"`
-	Timeout    int    `mapstructure:"timeout,omitempty" yaml:"timeout,omitempty"` // seconds
+	ClusterURL string            `mapstructure:"cluster_url" yaml:"cluster_url"`
+	AuthToken  string            `mapstructure:"auth_token" yaml:"auth_token"`
+	Timeout    int               `mapstructure:"timeout,omitempty" yaml:"timeout,omitempty"` // seconds
+	Headers    map[string]string `mapstructure:"headers,omitempty" yaml:"headers"`           // Custom headers like RITS_API_KEY, etc
 }
 
 // RoutingRule defines a routing rule
@@ -108,13 +109,18 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	var config Config
-	if err := v.Unmarshal(&config); err != nil {
+	if err := v.UnmarshalExact(&config); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	// Auto-detect platform if set to "auto"
 	if config.Edge.Platform == "auto" || config.Edge.Platform == "" {
 		config.Edge.Platform = detectPlatform()
+	}
+
+	// Expand paths in model configurations
+	if err := expandModelPaths(&config); err != nil {
+		return nil, fmt.Errorf("failed to expand model paths: %w", err)
 	}
 
 	// Apply platform-specific overrides
@@ -128,6 +134,52 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+// expandModelPaths expands ~ and environment variables in model paths
+func expandModelPaths(config *Config) error {
+	for i := range config.Edge.Models.Local {
+		if config.Edge.Models.Local[i].Path != "" {
+			expandedPath, err := expandPath(config.Edge.Models.Local[i].Path)
+			if err != nil {
+				return fmt.Errorf("failed to expand path for model %s: %w", config.Edge.Models.Local[i].Name, err)
+			}
+			config.Edge.Models.Local[i].Path = expandedPath
+		}
+	}
+	return nil
+}
+
+// expandPath expands ~ to home directory and cleans the path
+func expandPath(path string) (string, error) {
+	// Handle empty path
+	if path == "" {
+		return path, nil
+	}
+
+	// Expand ~ to home directory
+	if len(path) > 0 && path[0] == '~' {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return "", fmt.Errorf("failed to get home directory: %w", err)
+		}
+		
+		if len(path) == 1 {
+			path = home
+		} else if path[1] == '/' || path[1] == filepath.Separator {
+			path = filepath.Join(home, path[2:])
+		} else {
+			path = filepath.Join(home, path[1:])
+		}
+	}
+
+	// Expand environment variables
+	path = os.ExpandEnv(path)
+
+	// Clean the path (removes redundant separators, resolves . and ..)
+	path = filepath.Clean(path)
+
+	return path, nil
 }
 
 // setDefaults sets default configuration values

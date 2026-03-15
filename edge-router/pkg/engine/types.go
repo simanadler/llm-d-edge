@@ -115,7 +115,7 @@ type InferenceResponse struct {
 	// Object type (e.g., "chat.completion", "text_completion")
 	Object string `json:"object"`
 
-	// Created timestamp
+	// Created timestamp (Unix timestamp as integer)
 	Created int64 `json:"created"`
 
 	// Model used for inference

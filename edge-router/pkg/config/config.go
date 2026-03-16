@@ -51,8 +51,8 @@ const (
 
 // ModelsConfig contains model configuration
 type ModelsConfig struct {
-	Local  []LocalModelConfig  `mapstructure:"local" yaml:"local"`
-	Remote RemoteClusterConfig `mapstructure:"remote" yaml:"remote"`
+	Local  []ExtendedLocalModelConfig `mapstructure:"local" yaml:"local"`
+	Remote RemoteClusterConfig        `mapstructure:"remote" yaml:"remote"`
 }
 
 // LocalModelConfig defines a local model

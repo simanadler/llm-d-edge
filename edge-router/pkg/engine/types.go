@@ -150,12 +150,22 @@ type Usage struct {
 
 // ResponseMetadata contains additional metadata about the inference
 type ResponseMetadata struct {
-	RoutingTarget   string  `json:"routing_target"`   // "local" or "remote"
-	InferenceEngine string  `json:"inference_engine"` // Engine used
-	LatencyMs       int64   `json:"latency_ms"`       // Total latency in milliseconds
-	Platform        string  `json:"platform"`         // Platform (macos, windows, etc.)
-	ModelFormat     string  `json:"model_format"`     // Model format used
-	Quantization    string  `json:"quantization"`     // Quantization level
+	RoutingTarget   string                  `json:"routing_target"`             // "local" or "remote"
+	InferenceEngine string                  `json:"inference_engine"`           // Engine used
+	LatencyMs       int64                   `json:"latency_ms"`                 // Total latency in milliseconds
+	Platform        string                  `json:"platform"`                   // Platform (macos, windows, etc.)
+	ModelFormat     string                  `json:"model_format"`               // Model format used
+	Quantization    string                  `json:"quantization"`               // Quantization level
+	ModelSelection  *ModelSelectionMetadata `json:"model_selection,omitempty"`  // Model selection information
+}
+
+// ModelSelectionMetadata contains information about model selection and matching
+type ModelSelectionMetadata struct {
+	RequestedModel   string  `json:"requested_model"`    // Model requested by user
+	ActualModel      string  `json:"actual_model"`       // Model actually used
+	ModelSubstituted bool    `json:"model_substituted"`  // Whether model was substituted
+	MatchType        string  `json:"match_type"`         // Type of match: exact, substitution, family, fallback
+	MatchScore       float64 `json:"match_score"`        // Confidence in match (0.0-1.0)
 }
 
 // EngineCapabilities describes what an engine can do

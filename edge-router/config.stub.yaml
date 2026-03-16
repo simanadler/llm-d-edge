@@ -26,11 +26,26 @@ edge:
         format: "gguf"
         quantization: "q4"
         priority: 1
+        # Model matching configuration - allows this model to substitute for others
+        matching:
+          can_substitute:
+            - pattern: "gpt-3.5*"      # Can substitute for GPT-3.5 variants
+            - pattern: "*3b*"          # Can substitute for any 3B model
+            - pattern: "qwen*"         # Can substitute for Qwen models
+          exclude_patterns:
+            - "gpt-4*"                 # Don't substitute for GPT-4
+      
       - name: "local-stub-model-large"
         path: "/tmp/local-stub-model-large"
         format: "gguf"
         quantization: "q8"
         priority: 2
+        # Model matching configuration
+        matching:
+          can_substitute:
+            - pattern: "gpt-4*"        # Can substitute for GPT-4 variants
+            - pattern: "*7b*"          # Can substitute for any 7B model
+            - pattern: "llama*"        # Can substitute for Llama models
     
     # Remote cluster configuration (using stub server)
     remote:

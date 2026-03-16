@@ -106,12 +106,14 @@ func createTestConfig(policy config.RoutingPolicy) *config.Config {
 				Fallback: "remote",
 			},
 			Models: config.ModelsConfig{
-				Local: []config.LocalModelConfig{
+				Local: []config.ExtendedLocalModelConfig{
 					{
-						Name:         "test-model",
-						Format:       "mock",
-						Quantization: "4bit",
-						Priority:     1,
+						LocalModelConfig: config.LocalModelConfig{
+							Name:         "test-model",
+							Format:       "mock",
+							Quantization: "4bit",
+							Priority:     1,
+						},
 					},
 				},
 				Remote: config.RemoteClusterConfig{

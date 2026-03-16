@@ -28,12 +28,12 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 2. [Platform-Agnostic Architecture](#platform-agnostic-architecture)
 3. [Platform-Specific Implementations](#platform-specific-implementations)
 4. [Unified Component Design](#unified-component-design)
-5. [Implementation Strategy](#implementation-strategy)
 6. [Platform Comparison Matrix](#platform-comparison-matrix)
 7. [Technical Specifications](#technical-specifications)
 8. [Deployment Models](#deployment-models)
 9. [Testing & Validation](#testing--validation)
-10. [Roadmap](#roadmap)
+10. [Recommendations](#recommendations)
+11. [Conclusion](#conclusion)
 
 ---
 
@@ -43,10 +43,10 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 
 | Platform | Priority | Target Devices | Use Cases |
 |----------|----------|----------------|-----------|
-| **macOS** | P0 (Phase 1) | MacBook Pro M1-M4, Mac Studio | Development, professional use |
-| **Windows** | P0 (Phase 1) | Laptops/desktops with NVIDIA/AMD GPUs | Enterprise workstations |
-| **Android** | P1 (Phase 2) | High-end phones/tablets (8GB+ RAM) | Mobile inference, edge AI |
-| **iOS** | P1 (Phase 2) | iPhone 15 Pro+, iPad Pro | Mobile inference, privacy-focused |
+| **macOS** | P0 | MacBook Pro M1-M4, Mac Studio | Development, professional use |
+| **Windows** | P0 | Laptops/desktops with NVIDIA/AMD GPUs | Enterprise workstations |
+| **Android** | P1 | High-end phones/tablets (8GB+ RAM) | Mobile inference, edge AI |
+| **iOS** | P1 | iPhone 15 Pro+, iPad Pro | Mobile inference, privacy-focused |
 
 ### Platform-Specific Constraints
 
@@ -88,7 +88,7 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 2. **Unified API**: OpenAI-compatible REST API across all platforms
 3. **Pluggable Backends**: Abstract inference engine interface
 4. **Consistent Configuration**: YAML-based config works on all platforms
-5. **Cross-Platform SDK**: Single codebase for core logic (Go/Rust)
+5. **Cross-Platform SDK**: Single codebase for core logic (Go)
 
 ### High-Level Architecture
 
@@ -104,6 +104,7 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 │  │  Routing Logic (Platform-Agnostic)                   │   │
 │  │  - Request analysis                                  │   │
 │  │  - Local vs. remote decision                         │   │
+│  │  - Model selection                                   │   │
 │  │  - Fallback handling                                 │   │
 │  │  - Cost optimization                                 │   │
 │  └──────────────────────────────────────────────────────┘   │
@@ -131,8 +132,8 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 - **Mobile (Android/iOS)**: Native app, SDK for integration
 
 #### Layer 2: Router Core (Platform-Agnostic)
-- Written in **Go** or **Rust** for cross-compilation
-- Implements routing logic, configuration, monitoring
+- Written in **Go** for cross-compilation
+- Implements routing logic, configuration, monitoring including [model selection](model-selection-and-confidence-architecture.md)
 - Compiles to native binaries for each platform
 
 #### Layer 3: Inference Abstraction (Platform-Agnostic Interface)
@@ -271,7 +272,7 @@ This proposal extends the llm-d edge device architecture to support **multiple p
 
 ### 1. llm-d Edge Router (Cross-Platform Core)
 
-**Language**: Go (excellent cross-compilation) or Rust (performance + safety)
+**Language**: Go (excellent cross-compilation) 
 
 **Core Responsibilities**:
 - Request routing logic
@@ -349,37 +350,7 @@ func (r *Router) RouteRequest(req Request) (Target, error) {
 }
 ```
 
-### 2. Model Manager (Cross-Platform)
-
-**Responsibilities**:
-- Model discovery and download
-- Format conversion (HuggingFace → platform-specific)
-- Storage management
-- Version control
-
-**Platform-Specific Adapters**:
-```go
-type ModelConverter interface {
-    Convert(source string, target string, format ModelFormat) error
-    GetSupportedFormats() []ModelFormat
-}
-
-// Platform-specific converters
-type MLXConverter struct { /* macOS */ }
-type GGUFConverter struct { /* All platforms */ }
-type CoreMLConverter struct { /* iOS */ }
-type ONNXConverter struct { /* Windows */ }
-```
-
-**Model Format Strategy**:
-| Platform | Primary Format | Secondary Format | Conversion Tool |
-|----------|----------------|------------------|-----------------|
-| macOS | MLX | GGUF | mlx-lm, llama.cpp |
-| Windows | PyTorch (vLLM) | GGUF | vLLM, llama.cpp |
-| Android | GGUF | TFLite | llama.cpp, TFLite converter |
-| iOS | Core ML | GGUF | coremltools, llama.cpp |
-
-### 3. Configuration System (Cross-Platform)
+### 2. Configuration System (Cross-Platform)
 
 **Unified Configuration Format** (YAML):
 ```yaml
@@ -438,85 +409,6 @@ edge:
             format: "coreml"  # Prefer Core ML on iOS
             quantization: "4bit"
 ```
-
----
-
-## Implementation Strategy
-
-### Phase 1: Desktop Platforms (Months 1-4)
-
-**Goal**: Production-ready macOS and Windows support
-
-#### Month 1-2: Core Infrastructure
-- Implement platform-agnostic router core (Go/Rust)
-- Define inference engine interface
-- Build configuration system
-- Create model manager
-
-#### Month 3: macOS Implementation
-- Integrate MLX inference engine
-- Integrate llama.cpp (Metal) as fallback
-- Build macOS app/CLI
-- Create Homebrew package
-
-#### Month 4: Windows Implementation
-- Integrate vLLM (CUDA/ROCm)
-- Integrate llama.cpp (CUDA) as fallback
-- Build Windows app/service
-- Create MSI installer
-
-**Deliverables**:
-- Cross-platform router core
-- macOS and Windows apps
-- Installation packages
-- Documentation
-
-### Phase 2: Mobile Platforms (Months 5-8)
-
-**Goal**: Beta-quality Android and iOS support
-
-#### Month 5-6: Android Implementation
-- Port router core to Android (NDK)
-- Integrate llama.cpp (Android)
-- Build Android app
-- Implement background service
-
-#### Month 7-8: iOS Implementation
-- Port router core to iOS
-- Integrate Core ML
-- Integrate llama.cpp (Metal)
-- Build iOS app
-- App Store submission
-
-**Deliverables**:
-- Android app (APK/AAB)
-- iOS app (App Store)
-- Mobile SDK
-- Mobile-specific documentation
-
-### Phase 3: Production Hardening (Months 9-12)
-
-**Goal**: Production-ready all platforms
-
-#### Month 9-10: Reliability & Performance
-- Comprehensive testing across platforms
-- Performance optimization
-- Battery/thermal management (mobile)
-- Memory optimization
-
-#### Month 11-12: Developer Experience
-- SDK for app integration
-- Example applications
-- Migration guides
-- Video tutorials
-
-**Deliverables**:
-- Production-ready releases
-- SDKs for all platforms
-- Complete documentation
-- Example apps
-
----
 
 ## Platform Comparison Matrix
 
@@ -761,76 +653,17 @@ llmDEdge.chat(
 - iOS 17, 18
 - 6GB, 8GB, 16GB RAM
 
----
-
-## Roadmap
-
-### Phase 1: Desktop Foundation (Q1-Q2 2026)
-**Timeline**: 4 months  
-**Platforms**: macOS, Windows
-
-**Milestones**:
-- Month 1: Core router implementation
-- Month 2: macOS alpha release
-- Month 3: Windows alpha release
-- Month 4: Desktop beta release
-
-**Success Criteria**:
-- 80%+ requests served locally
-- <100ms routing overhead
-- 99% uptime
-- <10 minute setup
-
-### Phase 2: Mobile Expansion (Q3 2026)
-**Timeline**: 4 months  
-**Platforms**: Android, iOS
-
-**Milestones**:
-- Month 5: Android alpha release
-- Month 6: iOS alpha release
-- Month 7: Mobile beta release
-- Month 8: Mobile production release
-
-**Success Criteria**:
-- 60%+ requests served locally (mobile)
-- <200ms routing overhead
-- <5% battery impact
-- App Store approval
-
-### Phase 3: Production Hardening (Q4 2026)
-**Timeline**: 4 months  
-**All Platforms**
-
-**Milestones**:
-- Month 9: Performance optimization
-- Month 10: Reliability improvements
-- Month 11: Developer experience
-- Month 12: Production release (all platforms)
-
-**Success Criteria**:
-- 99.9% uptime (all platforms)
-- Complete documentation
-- 5+ example apps
-- 1000+ active users
-
----
-
 ## Recommendations
 
 ### Best Architectural Approach
 
 **Hybrid Edge-Cloud with Platform Abstraction**:
-1. **Core router in Go/Rust** for cross-compilation
+1. **Core router in Go** for cross-compilation
 2. **Platform-specific inference engines** for optimal performance
 3. **Unified API** for consistent developer experience
 4. **Graceful degradation** for offline operation
 5. **Mobile-optimized routing** for battery/thermal management
 
-### Implementation Priority
-
-1. **Phase 1 (Q1-Q2 2026)**: macOS + Windows (desktop foundation)
-2. **Phase 2 (Q3 2026)**: Android + iOS (mobile expansion)
-3. **Phase 3 (Q4 2026)**: Production hardening (all platforms)
 
 ### Key Success Factors
 

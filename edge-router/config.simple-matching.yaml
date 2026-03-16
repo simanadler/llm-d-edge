@@ -1,0 +1,43 @@
+# llm-d Edge Router Configuration - Simple Model Matching Example
+# Minimal configuration showing just the matching rules
+
+edge:
+  platform: auto
+  
+  routing:
+    policy: hybrid
+    fallback: remote
+  
+  models:
+    local:
+      # Simple example: Just name and matching rules
+      - name: "meta-llama/Llama-3.2-3B"
+        format: "gguf"
+        quantization: "4bit"
+        priority: 1
+        
+        # Just matching rules - no capabilities needed
+        matching:
+          can_substitute:
+            - pattern: "gpt-3.5-turbo"
+            - pattern: "gpt-3.5-turbo-*"
+            - pattern: "llama-3*"
+      
+      # Another simple example
+      - name: "Qwen/Qwen3-0.6B"
+        format: "gguf"
+        quantization: "4bit"
+        priority: 2
+        
+        matching:
+          can_substitute:
+            - pattern: "gpt-3.5-turbo-0125"  # Specific version
+          
+          exclude_patterns:
+            - pattern: "gpt-4*"  # Don't substitute for GPT-4
+    
+    remote:
+      cluster_url: "https://llm-d.example.com"
+      auth_token: "${LLMD_AUTH_TOKEN}"
+
+# Made with Bob

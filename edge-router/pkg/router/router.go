@@ -16,6 +16,7 @@ type Router struct {
 	config        *config.Config
 	localEngine   engine.InferenceEngine
 	remoteClient  *RemoteClient
+	modelMatcher  *ModelMatcher
 	logger        *zap.Logger
 	metrics       *Metrics
 	networkStatus *NetworkStatus
@@ -28,10 +29,13 @@ func NewRouter(cfg *config.Config, localEngine engine.InferenceEngine, logger *z
 		return nil, fmt.Errorf("failed to create remote client: %w", err)
 	}
 
+	modelMatcher := NewModelMatcher(cfg.Edge.Models.Local, logger)
+
 	return &Router{
 		config:        cfg,
 		localEngine:   localEngine,
 		remoteClient:  remoteClient,
+		modelMatcher:  modelMatcher,
 		logger:        logger,
 		metrics:       NewMetrics(),
 		networkStatus: NewNetworkStatus(),
@@ -339,12 +343,26 @@ func (r *Router) executeAction(action, condition string) *RoutingDecision {
 // Helper methods
 
 func (r *Router) hasLocalModel(modelName string) bool {
-	for _, model := range r.config.Edge.Models.Local {
-		if model.Name == modelName {
+	// Use model matcher to find candidates
+	candidates := r.modelMatcher.FindCandidates(modelName)
+	// Only consider it available if we have a reasonable match (not just fallback)
+	// Fallback matches have score 0.3, so we require > 0.3
+	for _, candidate := range candidates {
+		if candidate.MatchScore > 0.3 {
 			return true
 		}
 	}
 	return false
+}
+
+// findBestLocalModel finds the best matching local model for the requested model
+func (r *Router) findBestLocalModel(modelName string) *ModelCandidate {
+	candidates := r.modelMatcher.FindCandidates(modelName)
+	if len(candidates) == 0 {
+		return nil
+	}
+	// Return the best candidate (first one, as they're already sorted)
+	return &candidates[0]
 }
 
 func (r *Router) canServeLocally(req *engine.InferenceRequest) bool {
@@ -433,6 +451,14 @@ func (r *Router) isThermalThrottling() bool {
 
 // Infer performs inference using the appropriate target
 func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engine.InferenceResponse, error) {
+	requestedModel := req.Model
+	
+	// Find best matching local model
+	var selectedModel *ModelCandidate
+	if r.hasLocalModel(requestedModel) {
+		selectedModel = r.findBestLocalModel(requestedModel)
+	}
+	
 	// Make routing decision
 	decision, err := r.Route(ctx, req)
 	if err != nil {
@@ -441,10 +467,22 @@ func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engi
 
 	startTime := time.Now()
 	var response *engine.InferenceResponse
+	var actualModel string
 
 	// Execute inference based on decision
 	switch decision.Target {
 	case TargetLocal:
+		// Use the selected model for local inference
+		if selectedModel != nil {
+			actualModel = selectedModel.Model.Name
+			r.logger.Info("using local model",
+				zap.String("requested", requestedModel),
+				zap.String("actual", actualModel),
+				zap.String("match_type", string(selectedModel.MatchType)))
+		} else {
+			actualModel = requestedModel
+		}
+		
 		response, err = r.localEngine.Infer(ctx, *req)
 		if err != nil {
 			// Try fallback if configured
@@ -455,17 +493,22 @@ func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engi
 					return nil, fmt.Errorf("local and remote inference failed: %w", err)
 				}
 				decision.Target = TargetRemote
+				actualModel = requestedModel // Remote uses requested model
 			} else {
 				return nil, fmt.Errorf("local inference failed: %w", err)
 			}
 		}
 
 	case TargetRemote:
+		actualModel = requestedModel // Remote uses requested model
 		response, err = r.remoteClient.Infer(ctx, req)
 		if err != nil {
 			// Try fallback if configured
-			if r.config.Edge.Routing.Fallback == "local" && r.hasLocalModel(req.Model) {
+			if r.config.Edge.Routing.Fallback == "local" && r.hasLocalModel(requestedModel) {
 				r.logger.Warn("remote inference failed, falling back to local", zap.Error(err))
+				if selectedModel != nil {
+					actualModel = selectedModel.Model.Name
+				}
 				response, err = r.localEngine.Infer(ctx, *req)
 				if err != nil {
 					return nil, fmt.Errorf("remote and local inference failed: %w", err)
@@ -484,6 +527,26 @@ func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engi
 		InferenceEngine: r.getEngineNameForTarget(decision.Target),
 		LatencyMs:       latencyMs,
 		Platform:        r.config.Edge.Platform,
+	}
+	
+	// Add model selection metadata
+	if decision.Target == TargetLocal && selectedModel != nil {
+		response.Metadata.ModelSelection = &engine.ModelSelectionMetadata{
+			RequestedModel:   requestedModel,
+			ActualModel:      actualModel,
+			ModelSubstituted: requestedModel != actualModel,
+			MatchType:        string(selectedModel.MatchType),
+			MatchScore:       selectedModel.MatchScore,
+		}
+	} else if decision.Target == TargetRemote {
+		// For remote, no substitution
+		response.Metadata.ModelSelection = &engine.ModelSelectionMetadata{
+			RequestedModel:   requestedModel,
+			ActualModel:      actualModel,
+			ModelSubstituted: false,
+			MatchType:        "remote",
+			MatchScore:       1.0,
+		}
 	}
 
 	// Record metrics

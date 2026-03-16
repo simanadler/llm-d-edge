@@ -543,3 +543,119 @@ For issues or questions:
 - Review configuration in `config.stub.yaml`
 - See main [README.md](README.md) for general documentation
 - See [INTEGRATION.md](INTEGRATION.md) for production integration
+
+### 9. Test Model Matching and Substitution
+
+The edge router now supports flexible model matching, allowing local models to substitute for requested models even when names don't match exactly.
+
+**Test GPT-3.5 substitution with local model:**
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [
+      {"role": "user", "content": "Test model substitution"}
+    ]
+  }'
+```
+
+**Expected behavior:**
+- The router will match `gpt-3.5-turbo` to `local-stub-model-small` (via substitution rule)
+- Response will contain `"Source: local-stub-engine"`
+- Response metadata will include:
+  ```json
+  "llm_d_metadata": {
+    "routing_target": "local",
+    "model_selection": {
+      "requested_model": "gpt-3.5-turbo",
+      "actual_model": "local-stub-model-small",
+      "model_substituted": true,
+      "match_type": "substitution",
+      "match_score": 0.8
+    }
+  }
+  ```
+
+**Test GPT-4 substitution with larger local model:**
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4",
+    "messages": [
+      {"role": "user", "content": "Test GPT-4 substitution"}
+    ]
+  }'
+```
+
+**Expected behavior:**
+- The router will match `gpt-4` to `local-stub-model-large` (via substitution rule)
+- Response will contain `"Source: local-stub-engine"`
+- Model selection metadata will show substitution details
+
+**Test model family matching:**
+```bash
+# Request a Qwen model (matches via family)
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "Qwen/Qwen2.5-3B",
+    "messages": [
+      {"role": "user", "content": "Test family matching"}
+    ]
+  }'
+```
+
+**Expected behavior:**
+- Router matches via substitution pattern `qwen*`
+- Uses `local-stub-model-small`
+- Match type: "substitution"
+
+**Test model not available locally:**
+```bash
+# Request a model with no local match
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "claude-3-opus",
+    "messages": [
+      {"role": "user", "content": "Test remote fallback"}
+    ]
+  }'
+```
+
+**Expected behavior:**
+- No local model matches (not in substitution rules)
+- Routes to remote stub server
+- Response contains `"Source: llm-d-stub"`
+- Model selection metadata shows no substitution
+
+**Verify model selection metadata:**
+```bash
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "Check metadata"}]
+  }' | jq '.llm_d_metadata.model_selection'
+```
+
+**Expected output:**
+```json
+{
+  "requested_model": "gpt-3.5-turbo",
+  "actual_model": "local-stub-model-small",
+  "model_substituted": true,
+  "match_type": "substitution",
+  "match_score": 0.8
+}
+```
+
+**Model Matching Hierarchy:**
+1. **Exact match** (score: 1.0) - Model name matches exactly
+2. **Substitution match** (score: 0.8) - Matches via `can_substitute` patterns
+3. **Family match** (score: 0.7) - Same model family (llama, qwen, gpt, etc.)
+4. **Fallback match** (score: 0.3) - Generic fallback (not considered "available")
+
+**Note:** Models with match score ≤ 0.3 are not considered "available locally" and will route to remote.

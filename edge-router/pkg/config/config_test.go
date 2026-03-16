@@ -201,8 +201,8 @@ func TestValidateConfigValidPolicies(t *testing.T) {
 						Fallback: "remote",
 					},
 					Models: ModelsConfig{
-						Local: []LocalModelConfig{
-							{Name: "test-model"},
+						Local: []ExtendedLocalModelConfig{
+							{LocalModelConfig: LocalModelConfig{Name: "test-model"}},
 						},
 					},
 				},
@@ -225,8 +225,8 @@ func TestValidateConfigInvalidPolicy(t *testing.T) {
 				Fallback: "remote",
 			},
 			Models: ModelsConfig{
-				Local: []LocalModelConfig{
-					{Name: "test-model"},
+				Local: []ExtendedLocalModelConfig{
+					{LocalModelConfig: LocalModelConfig{Name: "test-model"}},
 				},
 			},
 		},
@@ -251,8 +251,8 @@ func TestValidateConfigValidFallbacks(t *testing.T) {
 						Fallback: fallback,
 					},
 					Models: ModelsConfig{
-						Local: []LocalModelConfig{
-							{Name: "test-model"},
+						Local: []ExtendedLocalModelConfig{
+							{LocalModelConfig: LocalModelConfig{Name: "test-model"}},
 						},
 					},
 				},
@@ -275,8 +275,8 @@ func TestValidateConfigInvalidFallback(t *testing.T) {
 				Fallback: "invalid-fallback",
 			},
 			Models: ModelsConfig{
-				Local: []LocalModelConfig{
-					{Name: "test-model"},
+				Local: []ExtendedLocalModelConfig{
+					{LocalModelConfig: LocalModelConfig{Name: "test-model"}},
 				},
 			},
 		},
@@ -297,7 +297,7 @@ func TestValidateConfigNoModels(t *testing.T) {
 				Fallback: "remote",
 			},
 			Models: ModelsConfig{
-				Local:  []LocalModelConfig{},
+				Local:  []ExtendedLocalModelConfig{},
 				Remote: RemoteClusterConfig{},
 			},
 		},
@@ -318,8 +318,8 @@ func TestValidateConfigLocalModelsOnly(t *testing.T) {
 				Fallback: "fail",
 			},
 			Models: ModelsConfig{
-				Local: []LocalModelConfig{
-					{Name: "test-model"},
+				Local: []ExtendedLocalModelConfig{
+					{LocalModelConfig: LocalModelConfig{Name: "test-model"}},
 				},
 			},
 		},
@@ -1012,7 +1012,7 @@ func TestValidateConfigEdgeCases(t *testing.T) {
 						Fallback: "remote",
 					},
 					Models: ModelsConfig{
-						Local: []LocalModelConfig{{Name: "test"}},
+						Local: []ExtendedLocalModelConfig{{LocalModelConfig: LocalModelConfig{Name: "test"}}},
 					},
 				},
 			},
@@ -1028,7 +1028,7 @@ func TestValidateConfigEdgeCases(t *testing.T) {
 						Fallback: "",
 					},
 					Models: ModelsConfig{
-						Local: []LocalModelConfig{{Name: "test"}},
+						Local: []ExtendedLocalModelConfig{{LocalModelConfig: LocalModelConfig{Name: "test"}}},
 					},
 				},
 			},
@@ -1044,7 +1044,7 @@ func TestValidateConfigEdgeCases(t *testing.T) {
 						Fallback: "remote",
 					},
 					Models: ModelsConfig{
-						Local: []LocalModelConfig{{Name: "test"}},
+						Local: []ExtendedLocalModelConfig{{LocalModelConfig: LocalModelConfig{Name: "test"}}},
 						Remote: RemoteClusterConfig{
 							ClusterURL: "https://api.example.com",
 						},

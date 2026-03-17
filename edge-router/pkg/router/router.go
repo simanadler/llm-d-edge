@@ -59,14 +59,11 @@ type RoutingDecision struct {
 }
 
 // Route determines where to route an inference request
-func (r *Router) Route(ctx context.Context, req *engine.InferenceRequest) (*RoutingDecision, error) {
+func (r *Router) Route(ctx context.Context, req *engine.InferenceRequest, hasLocalModel bool) (*RoutingDecision, error) {
 	startTime := time.Now()
 	defer func() {
 		r.metrics.RecordRoutingDecision(time.Since(startTime))
 	}()
-
-	// Check if model is available locally
-	hasLocalModel := r.hasLocalModel(req.Model)
 
 	// Check network connectivity
 	isConnected := r.networkStatus.IsConnected()
@@ -453,14 +450,22 @@ func (r *Router) isThermalThrottling() bool {
 func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engine.InferenceResponse, error) {
 	requestedModel := req.Model
 	
-	// Find best matching local model
+	// Find matching local models once (avoid redundant calls)
+	candidates := r.modelMatcher.FindCandidates(requestedModel)
+	
+	// Determine if we have a viable local model (score > 0.3)
 	var selectedModel *ModelCandidate
-	if r.hasLocalModel(requestedModel) {
-		selectedModel = r.findBestLocalModel(requestedModel)
+	hasLocalModel := false
+	for i := range candidates {
+		if candidates[i].MatchScore > 0.3 {
+			selectedModel = &candidates[i]
+			hasLocalModel = true
+			break
+		}
 	}
 	
-	// Make routing decision
-	decision, err := r.Route(ctx, req)
+	// Make routing decision (pass hasLocalModel to avoid recalculating)
+	decision, err := r.Route(ctx, req, hasLocalModel)
 	if err != nil {
 		return nil, fmt.Errorf("routing failed: %w", err)
 	}
@@ -504,7 +509,7 @@ func (r *Router) Infer(ctx context.Context, req *engine.InferenceRequest) (*engi
 		response, err = r.remoteClient.Infer(ctx, req)
 		if err != nil {
 			// Try fallback if configured
-			if r.config.Edge.Routing.Fallback == "local" && r.hasLocalModel(requestedModel) {
+			if r.config.Edge.Routing.Fallback == "local" && hasLocalModel {
 				r.logger.Warn("remote inference failed, falling back to local", zap.Error(err))
 				if selectedModel != nil {
 					actualModel = selectedModel.Model.Name

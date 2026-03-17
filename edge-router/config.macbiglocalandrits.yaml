@@ -14,17 +14,22 @@ edge:
   # Routing configuration
   routing:
     # Routing policy: local-first, remote-first, hybrid, cost-optimized, latency-optimized, mobile-optimized
-    policy: "local-first"
-    fallback: "remote"
+    policy: "remote-first"
+    fallback: "local"
   
   # Models configuration
   models:
     # Local models
     local:
-      - name: "Qwen/Qwen2.5-3B-Instruct"
-        path: "~/Library/Application Support/llm-d/models/Qwen--Qwen2.5-3B-Instruct"
+      - name: "meta-llama/Llama-3.1-70B-Instruct"
+        path: "~/Library/Application Support/llm-d/models/meta-llama--Llama-3.1-70B-Instruct"
         format: "mlx"
-        quantization: "4bit"
+        quantization: "8bit"
+        priority: 1
+      - name: "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+        path: "~/Library/Application Support/llm-d/models/Qwen--Qwen3-Coder-30B-A3B-Instruct"
+        format: "mlx"
+        quantization: "6bit"
         priority: 1
     
     # Remote cluster configuration (using RITS)
@@ -36,9 +41,6 @@ edge:
   
   # Routing rules (evaluated in order)
   routing_rules:
-    # Route large models to remote (stub)
-    - condition: "model_size > 7B"
-      action: "route_remote"
     
     # Route high token requests to remote (stub)
     - condition: "estimated_tokens > 2000"

@@ -168,7 +168,7 @@ func TestLocalFirstPolicy(t *testing.T) {
 		MaxTokens: 100,
 	}
 
-	decision, err := router.Route(context.Background(), req)
+	decision, err := router.Route(context.Background(), req, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestRemoteFirstPolicy(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), req)
+	decision, err := router.Route(context.Background(), req, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -231,7 +231,7 @@ func TestHybridPolicySmallRequest(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), req)
+	decision, err := router.Route(context.Background(), req, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -264,7 +264,7 @@ func TestHybridPolicyLargeRequest(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), req)
+	decision, err := router.Route(context.Background(), req, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -292,7 +292,7 @@ func TestModelNotAvailableLocally(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), req)
+	decision, err := router.Route(context.Background(), req, false)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -335,7 +335,7 @@ func TestRoutingRules(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), smallReq)
+	decision, err := router.Route(context.Background(), smallReq, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -470,7 +470,7 @@ func TestMobileOptimizedPolicy(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), smallReq)
+	decision, err := router.Route(context.Background(), smallReq, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -492,7 +492,7 @@ func TestMobileOptimizedPolicy(t *testing.T) {
 		},
 	}
 
-	decision, err = router.Route(context.Background(), largeReq)
+	decision, err = router.Route(context.Background(), largeReq, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -521,7 +521,7 @@ func TestLatencyOptimizedPolicy(t *testing.T) {
 		},
 	}
 
-	decision, err := router.Route(context.Background(), streamReq)
+	decision, err := router.Route(context.Background(), streamReq, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}
@@ -539,7 +539,7 @@ func TestLatencyOptimizedPolicy(t *testing.T) {
 		},
 	}
 
-	decision, err = router.Route(context.Background(), batchReq)
+	decision, err = router.Route(context.Background(), batchReq, true)
 	if err != nil {
 		t.Fatalf("Routing failed: %v", err)
 	}

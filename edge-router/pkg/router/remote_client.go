@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/llm-d-incubation/llm-d-edge/pkg/config"
@@ -37,6 +38,44 @@ func NewRemoteClient(cfg config.RemoteClusterConfig, logger *zap.Logger) (*Remot
 	}, nil
 }
 
+// getModelNameWithoutProvider extracts the model name without the provider prefix
+// Example: "Qwen/Qwen2.5-72B-Instruct" -> "qwen2-5-72b-instruct"
+func getModelNameWithoutProvider(model string) string {
+	// Split by "/" to remove provider prefix
+	parts := strings.Split(model, "/")
+	modelName := model
+	if len(parts) > 1 {
+		modelName = parts[len(parts)-1]
+	}
+	
+	// Convert to lowercase and replace dots with dashes
+	modelName = strings.ToLower(modelName)
+	modelName = strings.ReplaceAll(modelName, ".", "-")
+	
+	return modelName
+}
+
+// buildClusterURL builds the cluster URL, adding model name for RITS endpoints
+func (rc *RemoteClient) buildClusterURL(model string) string {
+	baseURL := rc.config.ClusterURL
+	
+	// Check if "rits" is in the cluster URL
+	if strings.Contains(strings.ToLower(baseURL), "rits") {
+		// Extract model name without provider prefix
+		modelName := getModelNameWithoutProvider(model)
+		
+		// Remove any trailing slashes from base URL
+		baseURL = strings.TrimRight(baseURL, "/")
+		
+		// Check if model name is already in the URL
+		if !strings.HasSuffix(strings.ToLower(baseURL), strings.ToLower(modelName)) {
+			baseURL = baseURL + "/" + modelName
+		}
+	}
+	
+	return baseURL
+}
+
 // Infer performs inference on the remote cluster
 func (rc *RemoteClient) Infer(ctx context.Context, req *engine.InferenceRequest) (*engine.InferenceResponse, error) {
 	// Convert to OpenAI-compatible format
@@ -45,10 +84,13 @@ func (rc *RemoteClient) Infer(ctx context.Context, req *engine.InferenceRequest)
 		return nil, fmt.Errorf("failed to marshal request: %w", err)
 	}
 
+	// Build cluster URL with model name if needed (for RITS)
+	clusterURL := rc.buildClusterURL(req.Model)
+	
 	// Determine endpoint based on request type
-	endpoint := rc.config.ClusterURL + "/v1/chat/completions"
+	endpoint := clusterURL + "/v1/chat/completions"
 	if req.Prompt != "" {
-		endpoint = rc.config.ClusterURL + "/v1/completions"
+		endpoint = clusterURL + "/v1/completions"
 	}
 
 	// Create HTTP request

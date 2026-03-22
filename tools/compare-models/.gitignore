@@ -1,0 +1,18 @@
+# Binaries
+compare-models
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test binary
+*.test
+
+# Output files
+*.json
+results/
+
+# Go workspace file
+go.work
+
+# Made with Bob

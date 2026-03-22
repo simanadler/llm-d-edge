@@ -251,6 +251,77 @@ routing_rules:
     action: "route_local_or_fail"
 ```
 
+## Using Model Manager for Local Models
+
+The [model-manager](../model-manager) tool can automatically install models and generate a YAML configuration file that you can use to populate your edge-router configuration.
+
+### Workflow
+
+1. **Install models using model-manager**:
+```bash
+cd ../model-manager
+./model-manager select --tasks code,chat
+```
+
+2. **Review the generated configuration**:
+```bash
+# Default location (macOS)
+cat ~/Library/Application\ Support/llm-d/installed-models.yaml
+
+# Or custom location if specified
+cat /path/to/installed-models.yaml
+```
+
+3. **Copy models to your edge-router config**:
+
+The generated file contains complete model configurations with capabilities and matching rules:
+
+```yaml
+edge:
+  models:
+    local:
+      - name: "Qwen/Qwen2.5-3B-Instruct"
+        format: "mlx"
+        quantization: "4bit"
+        priority: 1
+        path: "/Users/you/Library/Application Support/llm-d/models/Qwen--Qwen2.5-3B-Instruct"
+        
+        capabilities:
+          parameter_count: "3B"
+          context_length: 8192
+          model_family: "qwen"
+          quality_tier: "medium"
+          
+          tasks:
+            chat: 0.9
+            code: 0.7
+          
+          domains:
+            general: 0.9
+            technical: 0.7
+        
+        matching:
+          can_substitute:
+            - pattern: "*3b*"
+            - pattern: "qwen*"
+          
+          exclude_patterns:
+            - "gpt-4*"
+```
+
+4. **Copy the models you want into your `config.yaml`**:
+
+Simply copy the model entries from `installed-models.yaml` into your edge-router `config.yaml` under `edge.models.local`.
+
+### Benefits
+
+- **Automatic capability detection**: Model-manager detects and scores model capabilities
+- **Matching rules**: Automatically generates substitution patterns based on model characteristics
+- **Consistent structure**: Generated YAML matches edge-router's expected format
+- **Easy updates**: Regenerate the file whenever you install/uninstall models
+
+See [model-manager README](../model-manager/README.md) for more details on model installation and management.
+
 ## Platform-Specific Configuration
 
 ### macOS (MLX)

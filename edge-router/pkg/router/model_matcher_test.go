@@ -122,35 +122,6 @@ func TestModelMatcher_FindCandidates_ExcludePattern(t *testing.T) {
 	}
 }
 
-func TestModelMatcher_FindCandidates_FamilyMatch(t *testing.T) {
-	models := []config.ExtendedLocalModelConfig{
-		{
-			LocalModelConfig: config.LocalModelConfig{
-				Name:     "meta-llama/Llama-3.2-3B",
-				Priority: 1,
-			},
-			Capabilities: config.ModelCapabilities{
-				ModelFamily: "llama",
-			},
-		},
-	}
-
-	matcher := NewModelMatcher(models, zap.NewNop())
-	candidates := matcher.FindCandidates("llama-3.2-7b")
-
-	if len(candidates) != 1 {
-		t.Fatalf("expected 1 candidate, got %d", len(candidates))
-	}
-
-	if candidates[0].MatchType != MatchTypeFamily {
-		t.Errorf("expected family match, got %s", candidates[0].MatchType)
-	}
-
-	if candidates[0].MatchScore != 0.7 {
-		t.Errorf("expected match score 0.7, got %f", candidates[0].MatchScore)
-	}
-}
-
 func TestModelMatcher_FindCandidates_FallbackMatch(t *testing.T) {
 	models := []config.ExtendedLocalModelConfig{
 		{
@@ -228,17 +199,8 @@ func TestModelMatcher_FindCandidates_MultipleMatches_Ranking(t *testing.T) {
 	}
 }
 
-func TestModelMatcher_FindCandidates_DifferentScores_Ranking(t *testing.T) {
+func TestModelMatcher_FindCandidates_SubstitutionOnly(t *testing.T) {
 	models := []config.ExtendedLocalModelConfig{
-		{
-			LocalModelConfig: config.LocalModelConfig{
-				Name:     "meta-llama/Llama-3.2-3B",
-				Priority: 1,
-			},
-			Capabilities: config.ModelCapabilities{
-				ModelFamily: "llama",
-			},
-		},
 		{
 			LocalModelConfig: config.LocalModelConfig{
 				Name:     "Qwen/Qwen3-0.6B",
@@ -250,29 +212,30 @@ func TestModelMatcher_FindCandidates_DifferentScores_Ranking(t *testing.T) {
 				},
 			},
 		},
+		{
+			LocalModelConfig: config.LocalModelConfig{
+				Name:     "meta-llama/Llama-3.2-3B",
+				Priority: 2,
+			},
+		},
 	}
 
 	matcher := NewModelMatcher(models, zap.NewNop())
 	candidates := matcher.FindCandidates("llama-3.2-7b")
 
-	if len(candidates) != 2 {
-		t.Fatalf("expected 2 candidates, got %d", len(candidates))
+	// Should only get substitution match, not family match
+	if len(candidates) != 1 {
+		t.Fatalf("expected 1 candidate (substitution only), got %d", len(candidates))
 	}
 
-	// First should be substitution match (0.8) over family match (0.7)
 	if candidates[0].Model.Name != "Qwen/Qwen3-0.6B" {
-		t.Errorf("expected first candidate to be Qwen (substitution 0.8), got %s", candidates[0].Model.Name)
+		t.Errorf("expected candidate to be Qwen (substitution), got %s", candidates[0].Model.Name)
 	}
 	if candidates[0].MatchScore != 0.8 {
 		t.Errorf("expected match score 0.8, got %f", candidates[0].MatchScore)
 	}
-
-	// Second should be family match (0.7)
-	if candidates[1].Model.Name != "meta-llama/Llama-3.2-3B" {
-		t.Errorf("expected second candidate to be Llama (family 0.7), got %s", candidates[1].Model.Name)
-	}
-	if candidates[1].MatchScore != 0.7 {
-		t.Errorf("expected match score 0.7, got %f", candidates[1].MatchScore)
+	if candidates[0].MatchType != MatchTypeSubstitution {
+		t.Errorf("expected substitution match, got %s", candidates[0].MatchType)
 	}
 }
 
@@ -301,37 +264,6 @@ func TestModelMatcher_matchesPattern(t *testing.T) {
 			if result != tt.expected {
 				t.Errorf("matchesPattern(%q, %q) = %v, expected %v",
 					tt.model, tt.pattern, result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestModelMatcher_extractModelFamily(t *testing.T) {
-	matcher := NewModelMatcher([]config.ExtendedLocalModelConfig{}, zap.NewNop())
-
-	tests := []struct {
-		name     string
-		model    string
-		expected string
-	}{
-		{"llama with path", "meta-llama/Llama-3.2-3B", "llama"},
-		{"llama simple", "llama-3.2-7b", "llama"},
-		{"qwen with path", "Qwen/Qwen3-0.6B", "qwen"},
-		{"qwen simple", "qwen2-7b", "qwen"},
-		{"gpt", "gpt-3.5-turbo", "gpt"},
-		{"claude", "claude-3-opus", "claude"},
-		{"mistral", "mistralai/Mistral-7B", "mistral"},
-		{"phi", "microsoft/phi-2", "phi"},
-		{"gemma", "google/gemma-7b", "gemma"},
-		{"unknown", "some-unknown-model", ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := matcher.extractModelFamily(tt.model)
-			if result != tt.expected {
-				t.Errorf("extractModelFamily(%q) = %q, expected %q",
-					tt.model, result, tt.expected)
 			}
 		})
 	}

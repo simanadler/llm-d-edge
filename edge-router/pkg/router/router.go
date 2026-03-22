@@ -576,4 +576,9 @@ func (r *Router) Close() error {
 	return nil
 }
 
+// GetConfig returns the router's configuration
+func (r *Router) GetConfig() *config.Config {
+	return r.config
+}
+
 // Made with Bob

@@ -9,7 +9,7 @@ The edge router now supports **flexible model matching**, allowing it to use alt
 ## Key Features
 
 1. **Flexible Matching**: Router can substitute local models based on configurable rules
-2. **Match Types**: Exact, substitution, family, and fallback matching
+2. **Match Types**: Exact, substitution, and fallback matching
 3. **Transparent Metadata**: Response includes information about model substitution
 4. **Optional Configuration**: All capabilities and matching rules are optional
 
@@ -21,10 +21,11 @@ When a request comes in for a model (e.g., `gpt-3.5-turbo`), the router:
 
 1. **Exact Match** (score: 1.0): Checks if the exact model name is available locally
 2. **Substitution Match** (score: 0.8): Checks if any local model has a matching substitution rule
-3. **Family Match** (score: 0.7): Checks if any local model is from the same family (e.g., "llama", "qwen", "gpt"). Family is automatically extracted from model names - no configuration needed!
-4. **Fallback Match** (score: 0.3): Uses any available local model as last resort
+3. **Fallback Match** (score: 0.3): Uses any available local model as last resort
 
 The best match (highest score, then lowest priority number) is selected.
+
+**Note**: Only explicit matching rules are used. There is no automatic model family matching - all substitutions must be explicitly configured.
 
 ### Configuration
 
@@ -154,25 +155,7 @@ When a model is substituted, the response includes detailed metadata:
 }
 ```
 
-### Example 3: Family Match
-
-**Request**: `llama-3.2-7b`  
-**Available**: `meta-llama/Llama-3.2-3B` (family: "llama")  
-**Result**: Family match, score 0.7
-
-```json
-{
-  "model_selection": {
-    "requested_model": "llama-3.2-7b",
-    "actual_model": "meta-llama/Llama-3.2-3B",
-    "model_substituted": true,
-    "match_type": "family",
-    "match_score": 0.7
-  }
-}
-```
-
-### Example 4: Multiple Models
+### Example 3: Multiple Models
 
 **Request**: `gpt-3.5-turbo`  
 **Available**:
@@ -181,30 +164,6 @@ When a model is substituted, the response includes detailed metadata:
 
 **Result**: Uses `meta-llama/Llama-3.2-3B` (same score, lower priority number)
 
-## Implementation Details
-
-### Files Created/Modified
-
-1. **`pkg/config/model_metadata.go`** (new)
-   - Defines `ModelCapabilities`, `ModelMatching`, `SubstitutionRule`
-   - Extends `LocalModelConfig` with optional capabilities and matching
-
-2. **`pkg/router/model_matcher.go`** (new)
-   - Implements `ModelMatcher` with matching algorithm
-   - Supports exact, substitution, family, and fallback matching
-   - Pattern matching with wildcard support
-
-3. **`pkg/engine/types.go`** (modified)
-   - Added `ModelSelectionMetadata` to response metadata
-   - Includes requested model, actual model, substitution flag, match type, and score
-
-4. **`pkg/router/router.go`** (modified)
-   - Integrated `ModelMatcher` into router
-   - Updated `Infer()` to populate model selection metadata
-   - Modified `hasLocalModel()` to use flexible matching
-
-5. **`pkg/config/config.go`** (modified)
-   - Changed `ModelsConfig.Local` to use `ExtendedLocalModelConfig`
 
 ### Configuration Files
 
@@ -257,7 +216,6 @@ The architecture document (`docs/model-selection-and-confidence-architecture.md`
 1. **Runtime Confidence Scoring**: Assess response quality for each inference
 2. **Conditional Fallback**: Retry with better model if confidence is low (only when model was substituted)
 3. **Adaptive Learning**: Learn from historical performance to improve matching
-4. **HuggingFace Integration**: Auto-fetch model metadata from HuggingFace model cards
 
 These features are designed but not yet implemented, allowing for future expansion.
 

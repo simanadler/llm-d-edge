@@ -4,17 +4,20 @@ Hybrid edge-cloud inference routing for llm-d, enabling intelligent routing betw
 
 ## Features
 
-- **Intelligent Routing**: Automatically routes requests between local and remote inference based on configurable policies
+- **Intelligent Routing**: Automatically routes requests between local and remote inference based on configurable policies such as Local-first, remote-first, hybrid, cost-optimized, latency-optimized, and mobile-optimized.
+- **Flexible Model Matching**: Allows for flexible matching of models when model with the exact name is not available locally as described [here](MODEL_MATCHING.md).
 - **Cross-Platform**: Supports macOS, Windows, Android, and iOS with platform-specific optimizations
-- **Multiple Routing Policies**: Local-first, remote-first, hybrid, cost-optimized, latency-optimized, and mobile-optimized
 - **Graceful Degradation**: Automatic fallback when primary target fails
 - **Offline Support**: Works offline with local models
 - **OpenAI-Compatible API**: Drop-in replacement for OpenAI API
 - **Platform-Optimized Engines**:
   - **macOS**: MLX (Metal acceleration)
-  - **Windows**: vLLM (CUDA/ROCm) or llama.cpp
-  - **Android**: llama.cpp (ARM NEON + Hexagon DSP)
-  - **iOS**: Core ML or llama.cpp (Metal)
+  - (future) **Windows**: vLLM (CUDA/ROCm) or llama.cpp
+  - (future) **Android**: llama.cpp (ARM NEON + Hexagon DSP)
+  - (future) **iOS**: Core ML or llama.cpp (Metal)
+
+
+
 
 ## Architecture
 
@@ -61,7 +64,7 @@ pip3 install mlx-lm
 brew install go
 ```
 
-#### Windows
+#### Windows (future)
 ```bash
 # Install Go 1.22+
 # Download from https://go.dev/dl/
@@ -110,6 +113,7 @@ edge:
       cluster_url: "https://your-llm-d-cluster.com"
       auth_token: "${LLMD_AUTH_TOKEN}"
 ```
+Note: See [model-manager section](#using-model-manager-for-local-models) for installing and obtaining info about local models.
 
 3. Set environment variables:
 ```bash
@@ -199,7 +203,7 @@ routing:
   fallback: remote
 ```
 
-### Cost-Optimized
+### Cost-Optimized (example implementation only - not real prices)
 Minimizes cost by preferring local inference (essentially free) over remote (metered).
 
 ```yaml
@@ -208,7 +212,7 @@ routing:
   fallback: remote
 ```
 
-### Latency-Optimized
+### Latency-Optimized 
 Minimizes latency:
 - Interactive/streaming requests: Local
 - Batch requests: Remote (better throughput)
@@ -219,7 +223,7 @@ routing:
   fallback: remote
 ```
 
-### Mobile-Optimized
+### Mobile-Optimized (stuf only - requires platform specific implementations)
 Optimizes for mobile constraints:
 - Low battery: Remote
 - Thermal throttling: Remote
@@ -253,7 +257,7 @@ routing_rules:
 
 ## Using Model Manager for Local Models
 
-The [model-manager](../model-manager) tool can automatically install models and generate a YAML configuration file that you can use to populate your edge-router configuration.
+The [model-manager](../model-manager) tool can recommend and automatically install models appropriate for your platform and generate a YAML configuration file that you can use to populate your edge-router configuration.  
 
 ### Workflow
 
@@ -322,69 +326,7 @@ Simply copy the model entries from `installed-models.yaml` into your edge-router
 
 See [model-manager README](../model-manager/README.md) for more details on model installation and management.
 
-## Platform-Specific Configuration
 
-### macOS (MLX)
-
-```yaml
-platform_overrides:
-  macos:
-    models:
-      local:
-        - name: "Qwen/Qwen3-0.6B"
-          format: "mlx"
-          quantization: "4bit"
-```
-
-**Model Preparation**:
-```bash
-# Convert HuggingFace model to MLX format
-python -m mlx_lm.convert \
-  --hf-path Qwen/Qwen3-0.6B \
-  --mlx-path ~/Library/Application\ Support/llm-d/models/Qwen--Qwen3-0.6B \
-  --quantize \
-  --q-bits 4
-```
-
-### Windows (vLLM/llama.cpp)
-
-```yaml
-platform_overrides:
-  windows:
-    models:
-      local:
-        - name: "Qwen/Qwen3-0.6B"
-          format: "gguf"
-          quantization: "4bit"
-```
-
-### Android
-
-```yaml
-platform_overrides:
-  android:
-    routing:
-      policy: "mobile-optimized"
-    models:
-      local:
-        - name: "Qwen/Qwen3-0.6B"
-          format: "gguf"
-          quantization: "4bit"
-```
-
-### iOS
-
-```yaml
-platform_overrides:
-  ios:
-    routing:
-      policy: "mobile-optimized"
-    models:
-      local:
-        - name: "Qwen/Qwen3-0.6B"
-          format: "coreml"
-          quantization: "4bit"
-```
 
 ## Development
 
@@ -476,7 +418,7 @@ python3 -c "import mlx_lm; print('MLX installed')"
 ls ~/Library/Application\ Support/llm-d/models/
 
 # Download and convert model
-python -m mlx_lm.convert --hf-path Qwen/Qwen3-0.6B --mlx-path ~/Library/Application\ Support/llm-d/models/Qwen--Qwen3-0.6B
+See [model-manager](../model-manager/README.md) instructions to download and convert models
 ```
 
 ### Remote Cluster Connection Failed

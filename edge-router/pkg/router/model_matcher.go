@@ -29,7 +29,6 @@ type MatchType string
 const (
 	MatchTypeExact        MatchType = "exact"        // Exact model name match
 	MatchTypeSubstitution MatchType = "substitution" // Substitution rule match
-	MatchTypeFamily       MatchType = "family"       // Same model family
 	MatchTypeFallback     MatchType = "fallback"     // Generic fallback
 )
 
@@ -90,35 +89,7 @@ func (m *ModelMatcher) FindCandidates(requestedModel string) []ModelCandidate {
 		}
 	}
 
-	// 3. Family match (e.g., llama-3.2-3b for llama-3.2-7b)
-	requestedFamily := m.extractModelFamily(requestedModel)
-	if requestedFamily != "" {
-		for _, model := range m.localModels {
-			// Check explicit ModelFamily first, then extract from model name
-			localFamily := model.Capabilities.ModelFamily
-			if localFamily == "" {
-				localFamily = m.extractModelFamily(model.Name)
-			}
-			
-			if localFamily == requestedFamily {
-				// Check if not already added as substitution
-				if !m.containsModel(candidates, model.Name) {
-					m.logger.Info("found family match",
-						zap.String("requested_model", requestedModel),
-						zap.String("matched_model", model.Name),
-						zap.String("family", requestedFamily))
-
-					candidates = append(candidates, ModelCandidate{
-						Model:      model,
-						MatchType:  MatchTypeFamily,
-						MatchScore: 0.7,
-					})
-				}
-			}
-		}
-	}
-
-	// 4. Fallback: any available model (lowest priority)
+	// 3. Fallback: any available model (lowest priority)
 	if len(candidates) == 0 {
 		m.logger.Warn("no specific matches found, using fallback",
 			zap.String("requested_model", requestedModel))
@@ -176,46 +147,6 @@ func (m *ModelMatcher) isExcluded(modelName string, excludePatterns []string) bo
 		}
 	}
 	return false
-}
-
-// extractModelFamily extracts the model family from a model name
-func (m *ModelMatcher) extractModelFamily(modelName string) string {
-	// Common patterns:
-	// - "meta-llama/Llama-3.2-3B" -> "llama"
-	// - "Qwen/Qwen3-0.6B" -> "qwen"
-	// - "gpt-3.5-turbo" -> "gpt"
-	// - "claude-3-opus" -> "claude"
-
-	lowerName := strings.ToLower(modelName)
-
-	// Check for common families
-	families := []string{"llama", "qwen", "gpt", "claude", "mistral", "phi", "gemma"}
-	for _, family := range families {
-		if strings.Contains(lowerName, family) {
-			return family
-		}
-	}
-
-	// Try to extract from path (e.g., "meta-llama/..." -> "llama")
-	if strings.Contains(modelName, "/") {
-		parts := strings.Split(modelName, "/")
-		if len(parts) >= 2 {
-			// Check if the org name contains a family name
-			for _, family := range families {
-				if strings.Contains(strings.ToLower(parts[0]), family) {
-					return family
-				}
-			}
-			// Check the model name part
-			for _, family := range families {
-				if strings.Contains(strings.ToLower(parts[1]), family) {
-					return family
-				}
-			}
-		}
-	}
-
-	return ""
 }
 
 // containsModel checks if candidates already contains a model with the given name

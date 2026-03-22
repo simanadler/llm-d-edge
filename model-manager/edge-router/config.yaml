@@ -1,0 +1,30 @@
+edge:
+    platform: auto
+    device:
+        type: auto
+        memory: auto
+        storage: auto
+    routing:
+        policy: hybrid
+        fallback: remote
+    models:
+        local:
+            - name: Qwen/Qwen2.5-14B-Instruct
+              format: mlx
+              quantization: q4
+              priority: 1
+              path: /Users/simanadler/.llm-d-edge/models/Qwen2.5-14B-Instruct
+            - name: mistralai/Mistral-7B-Instruct-v0.3
+              format: mlx
+              quantization: q4
+              priority: 1
+              path: /Users/simanadler/Library/Application Support/llm-d/models/Mistral-7B-Instruct-v0.3
+            - name: stabilityai/stablelm-3b-4e1t
+              format: mlx
+              quantization: q4
+              priority: 1
+              path: /Users/simanadler/Library/Application Support/llm-d/models/stablelm-3b-4e1t
+        remote:
+            cluster_url: https://llm-d.example.com
+            auth_token: ${LLMD_AUTH_TOKEN}
+            timeout: 60
